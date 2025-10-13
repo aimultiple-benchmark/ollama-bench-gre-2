@@ -153,6 +153,7 @@ func (s *Server) NewSequence(prompt string, images []llm.ImageData, params NewSe
 	}
 
 	return &Sequence{
+<<<<<<< HEAD
 		inputs:              inputs,
 		numPromptInputs:     len(inputs),
 		startProcessingTime: startTime,
@@ -165,6 +166,20 @@ func (s *Server) NewSequence(prompt string, images []llm.ImageData, params NewSe
 		embeddingOnly:       params.embedding,
 		stop:                params.stop,
 		numKeep:             params.numKeep,
+=======
+		inputs:           inputs,
+		numPromptInputs:  len(inputs),
+		numPredict:       params.numPredict,
+		pendingResponses: make([]string, 0),
+		responses:        make(chan string, 100),
+		quit:             make(chan bool, 1),
+		embedding:        make(chan []float32, 1),
+		samplingCtx:      sc,
+		embeddingOnly:    params.embedding,
+		stop:             params.stop,
+		numKeep:          params.numKeep,
+		shift:            params.shift,
+>>>>>>> e638f2ac (runner: fix shifting on llama runner (#12604))
 	}, nil
 }
 
