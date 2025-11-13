@@ -85,6 +85,22 @@ func (m *gptossModel) Tensors(ts []Tensor) []*ggml.Tensor {
 			case "scales":
 				mxfp4s[name].scales = t
 			}
+<<<<<<< HEAD
+=======
+		} else if strings.HasSuffix(t.Name(), "gate_up_exps.bias") {
+			// gate_up_exps is interleaved, need to split into gate_exps and up_exps
+			// e.g. gate_exps, up_exps = gate_up_exps[:, 0::2, ...], gate_up_exps[:, 1::2, ...]
+			out = append(out, slices.Collect(splitDim(t, 1,
+				split{
+					Replacer: strings.NewReplacer("gate_up_exps", "gate_exps"),
+					slices:   []tensor.Slice{nil, tensor.S(0, int(t.Shape()[1]), 2)},
+				},
+				split{
+					Replacer: strings.NewReplacer("gate_up_exps", "up_exps"),
+					slices:   []tensor.Slice{nil, tensor.S(1, int(t.Shape()[1]), 2)},
+				},
+			))...)
+>>>>>>> 629db9dc (comment split)
 		} else {
 			out = append(out, &ggml.Tensor{
 				Name:     t.Name(),
@@ -97,9 +113,33 @@ func (m *gptossModel) Tensors(ts []Tensor) []*ggml.Tensor {
 
 	for name, mxfp4 := range mxfp4s {
 		dims := mxfp4.blocks.Shape()
+<<<<<<< HEAD
 
 		if !strings.HasSuffix(name, ".weight") {
 			name += ".weight"
+=======
+		if strings.Contains(name, "ffn_down_exps") {
+			out = append(out, &ggml.Tensor{
+				Name:     name + ".weight",
+				Kind:     uint32(ggml.TensorTypeMXFP4),
+				Shape:    []uint64{dims[0], dims[1], dims[2] * dims[3] * 2},
+				WriterTo: mxfp4,
+			})
+		} else if strings.Contains(name, "ffn_gate_up_exps") {
+			// gate_up_exps is interleaved, need to split into gate_exps and up_exps
+			// e.g. gate_exps, up_exps = gate_up_exps[:, 0::2, ...], gate_up_exps[:, 1::2, ...]
+			out = append(out, &ggml.Tensor{
+				Name:     strings.Replace(name, "gate_up", "gate", 1) + ".weight",
+				Kind:     uint32(ggml.TensorTypeMXFP4),
+				Shape:    []uint64{dims[0], dims[1] / 2, dims[2] * dims[3] * 2},
+				WriterTo: mxfp4.slice(1, 0, int(dims[1]), 2),
+			}, &ggml.Tensor{
+				Name:     strings.Replace(name, "gate_up", "up", 1) + ".weight",
+				Kind:     uint32(ggml.TensorTypeMXFP4),
+				Shape:    []uint64{dims[0], dims[1] / 2, dims[2] * dims[3] * 2},
+				WriterTo: mxfp4.slice(1, 1, int(dims[1]), 2),
+			})
+>>>>>>> 629db9dc (comment split)
 		}
 
 		out = append(out, &ggml.Tensor{
